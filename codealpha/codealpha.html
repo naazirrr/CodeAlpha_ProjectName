@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalkulyator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #0f172a;
+    }
+
+    .calculator {
+      width: 320px;
+      background: #1e293b;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      border: 1px solid #334155;
+    }
+
+    .display {
+      background: #0f172a;
+      padding: 20px 16px;
+      border-radius: 12px;
+      text-align: right;
+      margin-bottom: 20px;
+      min-height: 90px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      word-wrap: break-word;
+      word-break: break-all;
+      border: 1px solid #1e293b;
+    }
+
+    .expression {
+      color: #94a3b8;
+      font-size: 1.1rem;
+      min-height: 1.4rem;
+    }
+
+    .result {
+      color: #10b981;
+      font-size: 2rem;
+      font-weight: 600;
+      min-height: 2.4rem;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .btn {
+      height: 56px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-num {
+      background: #334155;
+      color: #f8fafc;
+    }
+
+    .btn-num:hover {
+      background: #475569;
+    }
+
+    .btn-operator {
+      background: #3b82f6;
+      color: #ffffff;
+    }
+
+    .btn-operator:hover {
+      background: #2563eb;
+    }
+
+    .btn-action {
+      background: #475569;
+      color: #f8fafc;
+    }
+
+    .btn-action:hover {
+      background: #64748b;
+    }
+
+    .btn-equal {
+      background: #10b981;
+      color: #ffffff;
+      grid-column: span 2;
+    }
+
+    .btn-equal:hover {
+      background: #059669;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="calculator">
+    <div class="display">
+      <div id="expression" class="expression"></div>
+      <div id="result" class="result">0</div>
+    </div>
+    
+    <div class="buttons">
+      <button class="btn btn-action" onclick="clearCalc()">AC</button>
+      <button class="btn btn-action" onclick="deleteLast()">DEL</button>
+      <button class="btn btn-operator" onclick="appendInput('%')">%</button>
+      <button class="btn btn-operator" onclick="appendInput('÷')">÷</button>
+
+      <button class="btn btn-num" onclick="appendInput('7')">7</button>
+      <button class="btn btn-num" onclick="appendInput('8')">8</button>
+      <button class="btn btn-num" onclick="appendInput('9')">9</button>
+      <button class="btn btn-operator" onclick="appendInput('×')">×</button>
+
+      <button class="btn btn-num" onclick="appendInput('4')">4</button>
+      <button class="btn btn-num" onclick="appendInput('5')">5</button>
+      <button class="btn btn-num" onclick="appendInput('6')">6</button>
+      <button class="btn btn-operator" onclick="appendInput('-')">-</button>
+
+      <button class="btn btn-num" onclick="appendInput('1')">1</button>
+      <button class="btn btn-num" onclick="appendInput('2')">2</button>
+      <button class="btn btn-num" onclick="appendInput('3')">3</button>
+      <button class="btn btn-operator" onclick="appendInput('+')">+</button>
+
+      <button class="btn btn-num" onclick="appendInput('0')">0</button>
+      <button class="btn btn-num" onclick="appendInput('.')">.</button>
+      <button class="btn btn-equal" onclick="finalizeResult()">=</button>
+    </div>
+  </div>
+
+  <script>
+    let expr = '';
+    const expressionEl = document.getElementById('expression');
+    const resultEl = document.getElementById('result');
+
+    function appendInput(val) {
+      const lastChar = expr.slice(-1);
+      const isOp = ['+', '-', '×', '÷', '%'].includes(val);
+      const isLastOp = ['+', '-', '×', '÷', '%'].includes(lastChar);
+
+      // İki operatorun yan-yana yazılmasının qarşısını alırıq (sonuncunu əvəzləyir)
+      if (isOp && isLastOp) {
+        expr = expr.slice(0, -1) + val;
+      } else {
+        // İfadə boşdursa və operator daxil edilirsə (mənfi işarəsi istisna olmaqla)
+        if (expr === '' && isOp && val !== '-') return;
+        expr += val;
+      }
+
+      updateDisplay();
+    }
+
+    function calculateLive() {
+      if (!expr) return '0';
+      try {
+        // Simvolları JavaScript-in anladığı formata salırıq
+        let sanitized = expr.replace(/×/g, '*').replace(/÷/g, '/');
+
+        // Əgər ifadə operatorla bitirsə, hesablamamaq üçün həmin operatoru müvəqqəti kəsirik
+        if (['+', '-', '*', '/', '%'].includes(sanitized.slice(-1))) {
+          sanitized = sanitized.slice(0, -1);
+        }
+
+        if (!sanitized) return '0';
+
+        // Təhlükəsiz qiymətləndirmə
+        const res = Function(`'use strict'; return (${sanitized})`)();
+        
+        if (!isFinite(res) || isNaN(res)) return 'Sıfıra bölmə xətası';
+        
+        return Math.round(res * 1e8) / 1e8;
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function updateDisplay() {
+      expressionEl.innerText = expr;
+      const liveRes = calculateLive();
+      resultEl.innerText = liveRes !== '' ? liveRes : '0';
+    }
+
+    function finalizeResult() {
+      const finalRes = calculateLive();
+      if (finalRes !== '' && finalRes !== 'Sıfıra bölmə xətası') {
+        expr = finalRes.toString();
+        expressionEl.innerText = '';
+        resultEl.innerText = expr;
+      }
+    }
+
+    function clearCalc() {
+      expr = '';
+      expressionEl.innerText = '';
+      resultEl.innerText = '0';
+    }
+
+    function deleteLast() {
+      expr = expr.slice(0, -1);
+      updateDisplay();
+    }
+
+    // Klaviatura dəstəyi
+    document.addEventListener('keydown', (e) => {
+      if (e.key >= '0' && e.key <= '9' || e.key === '.') {
+        appendInput(e.key);
+      } else if (e.key === '+') appendInput('+');
+      else if (e.key === '-') appendInput('-');
+      else if (e.key === '*') appendInput('×');
+      else if (e.key === '/') appendInput('÷');
+      else if (e.key === '%') appendInput('%');
+      else if (e.key === 'Enter' || e.key === '=') {
+        e.preventDefault();
+        finalizeResult();
+      } else if (e.key === 'Backspace') {
+        deleteLast();
+      } else if (e.key === 'Escape') {
+        clearCalc();
+      }
+    });
+  </script>
+</body>
+</html>
